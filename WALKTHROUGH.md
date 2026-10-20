@@ -4,7 +4,12 @@
 Nobody asked me to do this.
 
 **Status:** Stage 1 complete, metadata only, 20 Oct 2026. Profile-hash checks and grouped
-re-run not yet done. · Raw output in [`out/run_meta.txt`](out/run_meta.txt)
+re-run not yet done. · Raw output in [`out/run_meta.txt`](out/run_meta.txt) and
+[`out/run_channel_b.txt`](out/run_channel_b.txt)
+
+**In short:** within Atlas, the split is row-level (99.9% of benchmark rows share a study
+with pretrain). For the external benchmark studies, the result is negative: none is in
+MGnify, and none of their runs is in Atlas.
 
 ---
 
@@ -48,7 +53,7 @@ has measured it publicly.**
 
 ---
 
-## Two channels, different strength
+## Three channels, different strength
 
 **A — within Atlas.** Compass tasks 1–2 (biome classification) use held-out MGnify
 samples, i.e. Atlas's own benchmark split. Directly affected if studies straddle.
@@ -68,29 +73,36 @@ exists, so this is about what the default encourages.
 
 ## What I measured
 
-Streams only the metadata columns out of the parquet shards — no 5.55 GB load.
+Stage 1 reads single metadata columns out of the parquet shards — never the taxa lists,
+which are most of the 5.55 GB.
 
 1. `Study Accession` overlap between the two splits
 2. **Fraction of benchmark ROWS whose study also appears in pretrain** ← the headline
    number. Study *count* is misleading: three large shared studies can be 2% of studies
    and 60% of rows.
-3. Exact-duplicate profiles across splits (taxa + abundances hashed)
-4. Near-duplicate profiles — identical top-20 taxa in rank order. Technical replicates
-   rarely match to six decimals but almost always agree on their dominant taxa. This is
-   the check that catches real duplication.
-5. Whether provenance strata (data type / sequencing method / pipeline version) are
-   shared across the split
+3. **Channel B:** each source paper's accessions resolved against ENA and MGnify, and
+   every one of their runs looked up in Atlas's `Run Accession` column.
 
-It also emits `grouped_split.csv` — a study-grouped assignment, so Compass can be re-run
-cleanly whatever the result.
+Planned for Stage 2, not yet run:
 
-The script **fails loudly** on a schema mismatch rather than guessing at column names.
-If I'm going to question someone's methodology, mine shouldn't silently compute the
-wrong thing.
+- Exact-duplicate profiles across splits (taxa + abundances hashed)
+- Near-duplicate profiles — identical top-20 taxa in rank order. Technical replicates
+  rarely match to six decimals but almost always agree on their dominant taxa. This is
+  the check that catches real duplication.
+- Whether provenance strata (data type / sequencing method / pipeline version) are
+  shared across the split
+- A study-grouped split assignment, so Compass can be re-run cleanly whatever the result
+
+The scripts **fail loudly** rather than guess: a missing column stops the run, and the
+Channel B check refuses to report a negative unless a study known to be in MGnify
+resolves first. If I'm going to question someone's methodology, mine shouldn't silently
+compute the wrong thing.
 
 ---
 
 ## Result
+
+### Channel A — within Atlas
 
 **The split is row-level, not study-grouped.**
 
@@ -112,6 +124,32 @@ the split; the check confirms it rather than contradicting it.
 
 Rows total 539,308 (485,377 + 53,931), matching the card's split sizes.
 
+### Channel B — external benchmark studies: negative result
+
+Accessions are from each paper's Data availability section, confirmed on ENA:
+
+| Paper | Tasks | ENA project | ERP/SRP | MGnify | Runs |
+|---|---|---|---|---|---:|
+| Shi 2025, *Cell* | 3–5 | `PRJNA1297205` | `SRP604364` | none | 4,098 |
+| Mastrorilli 2026, bioRxiv | 6 | `PRJEB37062` | `ERP120353` | none | 87 |
+| Roswall 2021, children and mothers | 7–8 | `PRJEB38986` | `ERP122450` | none | 2,036 |
+| Roswall 2021, adult cohort (Tebani 2020) | 7–8? | `PRJEB38984` | `ERP122448` | none | 777 |
+
+- **No MGYS IDs exist for any of them**, by MGnify search or direct lookup.
+- Before trusting that negative, I validated the lookup method on a study known to be in
+  MGnify: `PRJEB6456` → `MGYS00001799`.
+- **None of the 6,998 runs, or their sample accessions (20,226 identifiers), appears in
+  Atlas's `Run Accession` column**, in either split.
+
+Caveats:
+
+- Absence from `SUSPECT` is not evidence of absence from the corpus.
+- Shi et al. build on earlier datasets of the same stool-derived communities; Compass may
+  actually use one of those deposits, which this check does not cover.
+- The adult cohort's role in tasks 7–8 is unconfirmed.
+- `Run Accession` is not purely runs: it also contains ~18k `ERZ` analysis IDs and ~400
+  sample IDs, plus ~2k identifiers that are not ENA accessions.
+
 ### What this does not show
 
 It does **not** show that any published result is inflated. Shared studies mean the
@@ -120,8 +158,8 @@ empirical, and answering it requires re-running the benchmark under a grouped sp
 That has not been done yet.
 
 **Scope.** Compass tasks 1–2 use held-out MGnify samples and are directly affected.
-Tasks 3–8 come from external studies (Shi, Mastrorilli, Roswall) and are a separate,
-unanswered question.
+Tasks 3–8 come from external studies (Shi, Mastrorilli, Roswall) and are a separate
+question; Channel B above answers it in the negative at the accession level only.
 
 ---
 
@@ -173,7 +211,8 @@ Run it yourself:
 ```bash
 pip install -r requirements.txt
 hf auth login
-python atlas_accession_check.py
+python atlas_accession_check.py   # Channel A
+python channel_b_check.py         # Channel B
 ```
 
 ---

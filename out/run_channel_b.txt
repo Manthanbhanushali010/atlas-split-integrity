@@ -1,0 +1,14 @@
+positive control: PRJEB6456 -> MGYS00001799  OK
+
+project        secondary   MGYS (project)   MGYS (secondary)  runs  title
+PRJNA1297205   SRP604364   none             none               4098  Chemical perturbation of stool-derived in vitro communities
+PRJEB37062     ERP120353   none             none                 87  Quantifying gut microbiome variation’s effect on interperson
+PRJEB38986     ERP122450   none             none               2036  Longitudinal study of children gut microbiota up to 5 years 
+PRJEB38984     ERP122448   none             none                777  Longitudinal profiling of non-disease individuals. Microbiot
+
+ENA identifiers checked: 20,226 (6,998 runs + their sample accessions)
+Atlas rows scanned (Run Accession, revision 9dad400): 539,308
+Run Accession prefixes: SRR 285,909, ERR 226,643, DRR 6,344, ERZ 18,020, SRS 232, ERS 163 , other 1,997
+
+matches in Atlas:
+  none -- no run or sample accession from these projects appears in either split

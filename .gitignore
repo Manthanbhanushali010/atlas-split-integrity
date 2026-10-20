@@ -2,3 +2,7 @@ __pycache__/
 *.pyc
 .venv/
 .pytest_cache/
+
+# internal working docs, never published
+docs/PROJECT.md
+docs/SPEC.md

@@ -40,7 +40,8 @@ parquet files over the network — not the 5.55 GB of taxa lists — and reports
 - the fraction of **benchmark rows** whose study also appears in pretrain (the number that
   matters; a few large shared studies can cover most of the split)
 - the largest straddling studies
-- whether configured external accessions appear in the pretrain split (channel B)
+- whether configured external accessions appear in the pretrain split (channel B;
+  `channel_b_check.py` does the run-level version of this check)
 
 ## Usage
 
@@ -50,19 +51,27 @@ hf auth login          # Atlas is gated; access is auto-approved
 python atlas_accession_check.py
 ```
 
-To check channel B, fill the `SUSPECT` dict at the top of the script with the real
-ENA/SRA accessions from the three source papers' Data Availability sections. Atlas may
-store MGnify IDs (`MGYS…`) rather than ENA project IDs (`PRJEB…`), in which case map
-between them first:
+Channel B has its own check, which resolves the `SUSPECT` accessions against ENA and
+MGnify and scans Atlas's `Run Accession` column for every run under them:
 
-```
-https://www.ebi.ac.uk/metagenomics/api/v1/studies?search=PRJEB12345
+```bash
+python channel_b_check.py
 ```
 
 ## Results
 
 **Status:** Stage 1 complete, metadata only, 20 Oct 2026. Profile-hash checks and grouped
-re-run not yet done. Raw output: [`out/run_meta.txt`](out/run_meta.txt).
+re-run not yet done. Raw output: [`out/run_meta.txt`](out/run_meta.txt),
+[`out/run_channel_b.txt`](out/run_channel_b.txt).
+
+In short:
+
+- **Channel A (within Atlas): the split is row-level.** 99.9% of benchmark rows share a
+  study with pretrain.
+- **Channel B (external benchmark studies): negative.** None of the Compass source studies
+  is in MGnify, and none of their runs appears in Atlas.
+
+### Channel A — within Atlas
 
 **The split is row-level, not study-grouped.** 53,884 of 53,931 benchmark rows (99.9%)
 belong to a study that also appears in pretrain. Of 2,603 studies with benchmark rows,
@@ -99,6 +108,37 @@ with `seed=42`, which is what this check set out to confirm or rule out.
 
 The row total, 485,377 + 53,931 = 539,308, matches the split sizes on the dataset card.
 
+### Channel B — external benchmark studies: negative result
+
+Compass tasks 3–8 come from three published studies. I took each paper's sequencing
+accessions from its Data availability section and confirmed them on ENA:
+
+| Paper | Compass tasks | ENA project | ERP/SRP | MGnify (`MGYS`) | ENA runs |
+|---|---|---|---|---|---:|
+| Shi et al. 2025, *Cell* | 3–5 | `PRJNA1297205` | `SRP604364` | none | 4,098 |
+| Mastrorilli et al. 2026, bioRxiv | 6 | `PRJEB37062` | `ERP120353` | none | 87 |
+| Roswall et al. 2021, *Cell Host Microbe* (children and mothers) | 7–8 | `PRJEB38986` | `ERP122450` | none | 2,036 |
+| Roswall et al. 2021, adult cohort (Tebani et al. 2020) | 7–8? | `PRJEB38984` | `ERP122448` | none | 777 |
+
+**No MGYS IDs exist for any of them.** MGnify returns nothing for any of the eight
+accessions, by search or by direct study lookup. Before trusting that negative, I
+checked the lookup method against a study known to be in MGnify: `PRJEB6456` resolves to
+`MGYS00001799`.
+
+Because Atlas stores MGYS IDs, a study-level match was impossible by construction, so I
+also checked runs directly. **None of the 6,998 runs under these projects, or their sample
+accessions (20,226 identifiers in all), appears in Atlas's `Run Accession` column** in
+either split.
+
+Caveats:
+
+- Absence from `SUSPECT` is not evidence of absence from the corpus.
+- Shi et al. build on earlier datasets of the same stool-derived communities; Compass may
+  actually use one of those deposits, which this check does not cover.
+- The adult cohort's role in tasks 7–8 is unconfirmed.
+- `Run Accession` is not purely runs: it also contains ~18k `ERZ` analysis IDs and ~400
+  sample IDs (`SRS`/`ERS`), plus ~2k identifiers that are not ENA accessions.
+
 ### What this does not show
 
 It does not show that any published result is inflated. A shared study means benchmark
@@ -109,7 +149,7 @@ study-grouped split and comparing the pretraining gain. That has not been done y
 **Scope.** Compass tasks 1–2 use held-out MGnify samples from Atlas's own benchmark split,
 so they are the tasks this result bears on directly. Tasks 3–8 come from external studies
 (Shi, Mastrorilli, Roswall); whether those appear in pretraining is a separate question,
-and this result does not answer it.
+which the Channel B result above answers in the negative at the accession level only.
 
 ## Limitations — read this before quoting anything
 
