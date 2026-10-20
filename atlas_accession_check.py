@@ -39,12 +39,29 @@ except ImportError as e:
 REPO = "datasets/outpost-bio/Atlas"
 COL = "Study Accession"
 
-# Accessions to look for in the PRETRAIN split. These are PLACEHOLDERS -- look up
-# the real ENA/MGnify accessions in the three papers before trusting any match.
-# Shi et al. 2025 (Cell), Mastrorilli et al. 2026 (bioRxiv), Roswall et al. 2021 (CHM).
+# Accessions to look for in the PRETRAIN split, taken from each paper's Data and
+# code availability section and confirmed on ENA (portal API, 20 Oct 2026).
+#
+# MGnify form: NONE of these resolve to an MGYS study. Both
+#   /api/v1/studies?search=<acc> and /api/v1/studies/<acc>
+# return nothing for the PRJ* and ERP/SRP forms, while a positive control
+# (PRJEB6456 -> MGYS00001799) resolves. Atlas stores MGYS IDs, so these ENA keys
+# cannot match `Study Accession` by construction -- a zero here is uninformative.
+# Separately, none of the 6,998 ENA runs/samples under these projects appears in
+# Atlas's `Run Accession` column (either split).
+#
+# Absence from SUSPECT is not evidence of absence from the corpus: Compass may use
+# data deposited elsewhere (e.g. prior SIC datasets the Shi paper builds on).
 SUSPECT = {
-    # "PRJEB12345": "Shi et al. 2025 - drug perturbation",
-    # "PRJNA123456": "Roswall et al. 2021 - infant gut",
+    "PRJNA1297205": "Shi 2025 (Cell) - tasks 3-5 [ENA]",
+    "SRP604364":    "Shi 2025 (Cell) - tasks 3-5 [SRA]",
+    "PRJEB37062":   "Mastrorilli 2026 (bioRxiv) - task 6 [ENA]",
+    "ERP120353":    "Mastrorilli 2026 (bioRxiv) - task 6 [ENA]",
+    "PRJEB38986":   "Roswall 2021 (CHM) children - tasks 7-8 [ENA]",
+    "ERP122450":    "Roswall 2021 (CHM) children - tasks 7-8 [ENA]",
+    # Adult cohort (Tebani 2020) also deposited by Roswall; likely not used by Compass.
+    "PRJEB38984":   "Roswall 2021 adult cohort - tasks 7-8? [ENA]",
+    "ERP122448":    "Roswall 2021 adult cohort - tasks 7-8? [ENA]",
 }
 
 
